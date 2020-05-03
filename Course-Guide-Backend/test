@@ -1,0 +1,66 @@
+var mongoose = require("mongoose"),
+  assert = require("assert");
+
+//recipe module variable
+var Recipes = require("./models/recipes-02");
+
+// Connection URL
+var url =
+  "mongodb+srv://jnbiasotti:pass123@cluster0-akse8.mongodb.net/RecipesDB?retryWrites=true&w=majority";
+
+// Connect using mongoose
+mongoose.connect(url, { useNewUrlParser: true });
+//open a connection and get a db handler
+var db = mongoose.connection;
+
+//error handling
+db.on("error", console.error.bind(console, "connection error:"));
+
+db.once("open", () => {
+  // we're connected!
+  console.log("Connected correctly to server");
+  Recipes.create(
+    {
+      name: "sushi",
+      description: "with avocado",
+      comments: [
+        {
+          rating: 5,
+          comment: "love it",
+          author: "Joe and Kevin"
+        }
+      ]
+    },
+    (err, recipe) => {
+      if (err) throw err;
+      console.log("recipe created");
+      console.log(recipe);
+
+      let id = recipe._id;
+      setTimeout(() => {
+        Recipes.findByIdAndUpdate(
+          id,
+          { $set: { description: "with salmon" } },
+          { new: true }
+        ).exec((err, recipe) => {
+          if (err) throw err;
+          console.log("recipe updated");
+          console.log(recipe);
+          recipe.comments.push({
+            rating: 5,
+            comment: "still love it",
+            author: "Jill"
+          });
+          recipe.save((err, recipe) => {
+            console.log("comments updated");
+            console.log(recipe);
+          });
+
+          db.collection("Recipes").drop(() => {
+            db.close();
+          });
+        });
+      }, 3000);
+    }
+  );
+});
